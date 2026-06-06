@@ -1,0 +1,22 @@
+# Secrets
+.env
+credentials
+config
+comorbid-s3-policy.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Mac
+.DS_Store
+
+# Large files
+*.parquet
+forecasting/outputs/
+eda/outputs/
+
+# Streamlit cache
+.streamlit/secrets.toml

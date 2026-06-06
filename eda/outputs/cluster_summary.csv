@@ -1,0 +1,6 @@
+cluster,places_diabetes,places_chd,places_obesity,places_stroke,places_bphigh,poverty_rate_pct,unemployment_rate_pct,hs_diploma_rate_pct,comorbid_index,risk_tier,n_counties
+1,18.173,8.638,44.764,5.394,45.894,27.185,9.37,32.989,0.608,High,176
+4,14.545,7.926,40.747,4.296,40.762,18.332,5.189,32.401,0.453,Moderate,644
+2,12.576,6.892,37.236,3.704,36.063,16.329,5.865,26.583,0.354,Moderate,674
+0,11.468,6.736,38.065,3.442,34.703,10.839,3.213,31.217,0.311,Moderate,994
+3,9.881,5.587,31.939,2.942,30.972,9.798,4.083,20.779,0.212,Low,656
