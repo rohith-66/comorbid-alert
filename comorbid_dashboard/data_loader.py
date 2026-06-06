@@ -22,16 +22,20 @@ def _s3():
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_main() -> pd.DataFrame:
-    s3 = _s3()
-    obj = s3.get_object(Bucket=BUCKET, Key=MAIN_PARQUET)
-    df = pd.read_parquet(io.BytesIO(obj["Body"].read()))
-    df["fips"] = df["fips"].astype(str).str.zfill(5)
-    df = df.rename(columns={
-        "comorbid_l1_clinical":    "L1_score",
-        "comorbid_l2_social":      "L2_score",
-        "comorbid_l3_trajectory":  "L3_score",
-    })
-    return df
+    try:
+        s3 = _s3()
+        obj = s3.get_object(Bucket=BUCKET, Key=MAIN_PARQUET)
+        df = pd.read_parquet(io.BytesIO(obj["Body"].read()))
+        df["fips"] = df["fips"].astype(str).str.zfill(5)
+        df = df.rename(columns={
+            "comorbid_l1_clinical":   "L1_score",
+            "comorbid_l2_social":     "L2_score",
+            "comorbid_l3_trajectory": "L3_score",
+        })
+        return df
+    except Exception as e:
+        st.error(f"S3 error: {type(e).__name__}: {str(e)}")
+        st.stop()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
