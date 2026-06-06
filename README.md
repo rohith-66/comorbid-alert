@@ -1,109 +1,158 @@
-# ComorbidAlert Dashboard — Week 6
+# 🫀 ComorbidAlert
 
-Streamlit dashboard for the US county-level diabetes–cardiac comorbidity forecasting system.
+**US county-level diabetes-cardiac comorbidity forecasting and early warning system**
 
-## Structure
+[![Live Dashboard](https://img.shields.io/badge/Live%20Dashboard-comorbid--alert.streamlit.app-00B4B4?style=flat-square&logo=streamlit)](https://comorbid-alert.streamlit.app)
+[![Python 3.13](https://img.shields.io/badge/Python-3.13-blue?style=flat-square&logo=python)](https://python.org)
+[![Data: CDC PLACES](https://img.shields.io/badge/Data-CDC%20PLACES%202024-red?style=flat-square)](https://places.cdc.gov)
+
+---
+
+## What is this?
+
+ComorbidAlert forecasts which US counties are on a worsening trajectory toward diabetes-cardiac comorbidity — the co-occurrence of diabetes and cardiovascular disease, which is the leading driver of preventable mortality in the US.
+
+The system goes beyond current risk scores. A county can look "Moderate" today while silently accelerating toward crisis. ComorbidAlert catches that — tracking **direction**, not just level — and flags counties 2–3 years before they cross critical thresholds.
+
+**Live dashboard → [comorbid-alert.streamlit.app](https://comorbid-alert.streamlit.app)**
+
+---
+
+## Key Findings
+
+1. **Diabetes is the engine.** Diabetes prevalence is 3.5× more predictive than the next strongest risk factor — driving cardiac risk more than poverty, obesity, and insurance gaps combined.
+
+2. **Two completely different crises.** The 33 Critical counties split into two archetypes — Deep South Black Belt counties (structural poverty + clinical burden) and Native American reservation counties (geographic isolation + federal healthcare gaps) — each requiring entirely different interventions.
+
+3. **The Great Plains are the blind spot.** Nebraska, Iowa, and South Dakota look Moderate today but are accelerating faster than almost anywhere in the country. Novel finding not documented in prior public health literature.
+
+4. **994 suburban counties are hiding a time bomb.** Low current scores but rapidly rising obesity and stagnant healthcare access — over 150 projected to cross into High risk by 2027.
+
+5. **The intervention window is closing.** 102 Critical counties in 2025 → 233 by 2027. Today's Watch alerts are tomorrow's Critical counties.
+
+---
+
+## Pipeline
 
 ```
-comorbid_dashboard/
-├── app.py                     ← Streamlit entry point + global CSS
-├── requirements.txt
-├── .streamlit/
-│   └── config.toml            ← Dark theme + server config
-├── data/
-│   └── loader.py              ← S3 data access layer (all @st.cache_data)
-├── ui/
-│   └── sidebar.py             ← Navigation sidebar + routing
-└── pages/
-    ├── page_map.py            ← National choropleth map
-    ├── page_county.py         ← County drill-down panel
-    ├── page_alerts.py         ← Alert table + filters
-    └── page_insights.py       ← 5 key insights with charts
+CDC PLACES 2024 + Census ACS 5-Year + BRFSS 2023
+                    ↓
+           3,144 US Counties
+                    ↓
+     3-Layer Comorbidity Index
+     ├── L1: Clinical burden (diabetes, CHD, obesity, hypertension)
+     ├── L2: Social vulnerability (poverty, uninsured, access)
+     └── L3: Trajectory (rate of change vs baseline)
+                    ↓
+     Risk Tiers: Critical (33) · High (381) · Moderate (2,164) · Low (566)
+                    ↓
+     Forecasting 2025–2027
+     ├── Prophet baseline       WAPE: 5.07%
+     ├── LightGBM               WAPE: 0.96%  (wins 2,101 counties)
+     └── Weighted Ensemble      WAPE: 0.46%  ✓
+                    ↓
+     Early Warning Alerts: 830 total
+     ├── Critical: 29  (already Critical, still worsening)
+     ├── Warning:  129 (High tier, crossing Critical by 2027)
+     └── Watch:    672 (Moderate, accelerating toward High)
 ```
 
-## Setup
+---
 
-```bash
-# From project root (comorbid_alret/)
-cd comorbid_dashboard
+## Dashboard Pages
 
-# Install deps into existing venv
-../.venv/bin/pip install -r requirements.txt
+### 🗺️ Map
+US choropleth colored by comorbidity index. Toggle alert overlays (Critical / Warning / Watch). Switch between 2023 observed and 2025 / 2026 / 2027 forecast views. Click any county to open its risk profile.
 
-# Make sure AWS creds are set (same .env as main pipeline)
-# COMORBID_S3_BUCKET=comorbid-alert-data must be set
-
-# Run
-../.venv/bin/streamlit run app.py
-```
-
-Or from the project root:
-
-```bash
-source .venv/bin/activate
-pip install -r comorbid_dashboard/requirements.txt
-streamlit run comorbid_dashboard/app.py
-```
-
-## S3 Data Expected
-
-The dashboard reads these keys from `comorbid-alert-data`:
-
-| Key | Used for |
-|-----|----------|
-| `processed/comorbidity_index.parquet` | Base index, L1/L2/L3, risk tiers |
-| `models/ensemble_forecasts.parquet` | Year-level ensemble forecasts 2025–2027 |
-| `models/prophet_forecasts.parquet` | Prophet per-county with CI (optional) |
-| `models/lgbm_forecasts.parquet` | LightGBM per-county (optional) |
-| `models/shap_values.parquet` | SHAP feature importance per county (optional) |
-| `alerts/alert_log.csv` | 830 alerts from Week 5 |
-
-Missing optional files degrade gracefully — the chart simply won't appear.
-
-## Pages
-
-### 🗺️ National Map
-- Choropleth colored by comorbidity index (0–1 scale, dark blue → deep red)
-- Toggle alert overlays on/off
-- Switch between 2023 observed / 2025 / 2026 / 2027 forecast views
-- County selector → navigates to drill-down
-
-### 🏥 County Detail
-- Risk tier badge + comorbidity index (monospace, tier-colored)
-- L1 / L2 / L3 bar breakdown with plain-English labels
-- Forecast chart: Prophet (dotted) + LightGBM (dashed) + Ensemble (solid) + CI band
-- Alert status + reason
-- SHAP top-5 features (red = increases risk, blue = reduces risk)
+### 🔍 County Drill-Down
+Full county profile — risk tier badge, comorbidity index, L1/L2/L3 layer breakdown, forecast trajectory with all three model lines and confidence intervals, alert status with plain-English reason, and SHAP top-5 risk drivers.
 
 ### 🚨 Alerts
-- Full 830-alert table, sortable by tier / slope / change % / state
-- Filter by tier and/or state
-- Great Plains cluster highlighted as novel finding
-- Bar chart: top 20 states by alert count (stacked by tier)
+Sortable table of all 830 alerts. Filter by tier and state. Great Plains cluster highlighted as a novel finding. Alert distribution by state.
 
 ### 💡 Insights
-- 5 finding cards in plain English (no jargon)
-- Each card has an embedded supporting chart:
-  1. L1 vs L2 by risk tier (grouped bar)
-  2. Two-archetype comparison (Deep South vs Native American)
-  3. SE coast cluster trajectory vs national average
-  4. Suburban obesity trend by county type
-  5. Critical county growth 2023→2027 with Great Plains highlighted
+5 key findings written in plain English for public health officials — no data science jargon. Each finding has a supporting chart.
 
-## Optional: streamlit-plotly-events
+---
 
-For click-to-drill-down on the choropleth:
+## Project Structure
 
-```bash
-pip install streamlit-plotly-events
+```
+comorbid-alert/
+├── comorbid_dashboard/         # Streamlit dashboard
+│   ├── app.py                  # Entry point + global CSS
+│   ├── data_loader.py          # All S3 reads with st.cache_data
+│   ├── requirements.txt
+│   ├── .streamlit/
+│   │   └── config.toml         # Dark navy theme
+│   └── _pages/
+│       ├── page_map.py         # Page 1: Choropleth map
+│       ├── page_county.py      # Page 2: County drill-down
+│       ├── page_alerts.py      # Page 3: Alerts table
+│       └── page_insights.py    # Page 4: Key findings
+├── src/                        # Data pipeline
+│   ├── ingest/                 # CDC PLACES, Census ACS, BRFSS ingestors
+│   ├── transform/              # Cleaning, joining, scoring
+│   ├── storage/                # S3 writer (versioned Parquet)
+│   └── aws_session.py
+├── eda/                        # Exploratory analysis scripts
+├── forecasting/                # Prophet, LightGBM, ensemble, alerting
+├── tests/                      # Pipeline tests (14 passing)
+└── pipeline.py                 # Full pipeline runner
 ```
 
-If not installed, the choropleth renders normally and the county selector handles navigation.
+---
 
-## Design Principles
+## Stack
 
-- IBM Plex Sans / IBM Plex Mono — readable, authoritative, clinical
-- Dark background (#0f1117) — reduces eye strain for long analysis sessions
-- Tier colors consistent everywhere: Critical=red, High=orange, Moderate=amber, Low=green
-- Every chart is `displayModeBar: False` — clean, no toolbar clutter
-- All S3 reads cached for 1 hour with `@st.cache_data(ttl=3600)`
+| Layer | Tools |
+|-------|-------|
+| Data ingestion | CDC PLACES API, Census ACS API, BRFSS |
+| Storage | AWS S3 (versioned Parquet via PyArrow) |
+| Scoring | pandas, numpy |
+| Forecasting | Prophet, LightGBM, weighted ensemble |
+| Explainability | SHAP |
+| Dashboard | Streamlit, Plotly |
+| Deployment | Streamlit Community Cloud |
+
+---
+
+## Running Locally
+
+```bash
+git clone https://github.com/rohith-66/comorbid-alert.git
+cd comorbid-alert
+
+python -m venv .venv
+source .venv/bin/activate
+pip install -r comorbid_dashboard/requirements.txt
+
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_DEFAULT_REGION="us-east-1"
+
+python -m streamlit run comorbid_dashboard/app.py
+```
+
+---
+
+## Data Sources
+
+- **CDC PLACES 2024** — county-level health outcomes (diabetes, CHD, obesity, hypertension prevalence)
+- **Census ACS 5-Year** — social determinants (poverty rate, uninsured rate, median income)
+- **BRFSS 2023** — behavioral risk factors
+- **Coverage:** 3,144 US counties · Forecast horizon: 2025–2027
+
+*Note: Oglala Lakota County (FIPS 46113) is missing from CDC PLACES 2024 — a documented data gap for reservation counties.*
+
+---
+
+## Model Performance
+
+| Model | Median WAPE | Counties Won |
+|-------|------------|-------------|
+| Prophet | 5.07% | 823 |
+| LightGBM | 0.96% | 2,101 |
+| Weighted Ensemble | **0.46%** | — |
+
+Ensemble weights are per-county, based on inverse holdout WAPE — counties where LightGBM performed better get higher LightGBM weight, and vice versa.
