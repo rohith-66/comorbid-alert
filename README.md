@@ -1,6 +1,6 @@
 # 🫀 ComorbidAlert
 
-**US county-level diabetes-cardiac comorbidity forecasting and early warning system**
+**ML pipeline forecasting diabetes-cardiac risk across all 3,144 US counties · WAPE 0.46% · Live Streamlit dashboard**
 
 [![Live Dashboard](https://img.shields.io/badge/Live%20Dashboard-comorbid--alert.streamlit.app-00B4B4?style=flat-square&logo=streamlit)](https://comorbid-alert.streamlit.app)
 [![Python 3.13](https://img.shields.io/badge/Python-3.13-blue?style=flat-square&logo=python)](https://python.org)
